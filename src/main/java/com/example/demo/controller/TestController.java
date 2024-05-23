@@ -6,10 +6,12 @@ import lombok.RequiredArgsConstructor;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -24,16 +26,18 @@ public class TestController {
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH");
 
     @GetMapping("/")
+    @ResponseBody
     public void fileLead() throws Exception {
 
         JSONParser parser = new JSONParser();
 
         //json 읽어오기
         try {
-            Reader reader = new FileReader("../resources/json/2023년3월_서울시_미세먼지.json");
+            ClassPathResource resource = new ClassPathResource("json/dust.json");
+            Reader reader = new InputStreamReader(resource.getInputStream(), "UTF-8");
             JSONArray dataArray = (JSONArray) parser.parse(reader);
 
-            System.out.println("dateArray : " + dataArray);
+//            System.out.println("dateArray : " + dataArray);
 
             List<JSONObject> stationData = new ArrayList<>();
             for (Object obj : dataArray) {
@@ -41,7 +45,7 @@ public class TestController {
                 stationData.add(data);
             }
 
-            System.out.println("stationData : " + stationData);
+//            System.out.println("stationData : " + stationData);
 
             // 시간 순서대로 데이터 처리
             processStationData(stationData);
@@ -52,7 +56,7 @@ public class TestController {
     }
 
     private void processStationData(List<JSONObject> stationData) {
-        int consecutiveHours = 0;
+        int checkTime = 0;
         LocalDateTime startDateTime = null;
         String lastStationName = null;
 
@@ -75,24 +79,25 @@ public class TestController {
                 testDto.setDate(date);
                 testDto.setFineDust("0");
                 testDto.setUltrafineDust("0");
-                testService.insertCheck(testDto);
+                testService.insertData(testDto);
                 continue;
             }
 
             //측정소별 초기화
             if (!station.equals(lastStationName)) {
-                consecutiveHours = 0;
+                checkTime = 0;
                 startDateTime = null;
                 lastStationName = station;
             }
 
+            // 미세먼지 또는 초미세먼지가 기준치를 넘으면 연속 시간 증가
             if (fineDust >= 150 || ultrafineDust >= 75) {
-                if (consecutiveHours == 0) {
+                if (checkTime == 0) {
                     startDateTime = LocalDateTime.parse(date, formatter);
                 }
-                consecutiveHours++;
+                checkTime++;
 
-                if (consecutiveHours >= 2) {
+                if (checkTime >= 2) {
                     int grade = gradeCheck(fineDust, ultrafineDust);
                     String level = levelCheck(fineDust, ultrafineDust);
                     if (grade > 0) {
@@ -103,15 +108,15 @@ public class TestController {
                         testDto.setDate(startDateTime.format(formatter));
                         testDto.setFineDust(fineDustStr);
                         testDto.setUltrafineDust(ultrafineDustStr);
-                        testService.insertCheck(testDto);
+                        testService.insertData(testDto);
                     }
                 }
             } else {
-                consecutiveHours = 0;
+                checkTime = 0;
                 startDateTime = null;
             }
 
-            if (i == stationData.size() - 1 && consecutiveHours >= 2) {
+            if (i == stationData.size() - 1 && checkTime >= 2) {
                 int grade = gradeCheck(fineDust, ultrafineDust);
                 String level = levelCheck(fineDust, ultrafineDust);
                 if (grade > 0) {
@@ -122,33 +127,33 @@ public class TestController {
                     testDto.setDate(startDateTime.format(formatter));
                     testDto.setFineDust(fineDustStr);
                     testDto.setUltrafineDust(ultrafineDustStr);
-                    testService.insertCheck(testDto);
+                    testService.insertData(testDto);
                 }
             }
         }
     }
 
-    private int gradeCheck(int pm10, int pm25) {
-        if (pm25 >= 150) {
+    private int gradeCheck(int fineDust, int ultrafineDust) {
+        if (ultrafineDust >= 150) {
             return 1;
-        } else if (pm10 >= 300) {
+        } else if (fineDust >= 300) {
             return 2;
-        } else if (pm25 >= 75) {
+        } else if (ultrafineDust >= 75) {
             return 3;
-        } else if (pm10 >= 150) {
+        } else if (fineDust >= 150) {
             return 4;
         } else {
             return 0;
         }
     }
-    private String levelCheck(int pm10, int pm25) {
-        if (pm25 >= 150) {
+    private String levelCheck(int fineDust, int ultrafineDust) {
+        if (ultrafineDust >= 150) {
             return "초미세먼지 경보";
-        } else if (pm10 >= 300) {
+        } else if (fineDust >= 300) {
             return "미세먼지 경보";
-        } else if (pm25 >= 75) {
+        } else if (ultrafineDust >= 75) {
             return "초미세먼지 주의보";
-        } else if (pm10 >= 150) {
+        } else if (fineDust >= 150) {
             return "미세먼지 주의보";
         } else {
             return "점검";

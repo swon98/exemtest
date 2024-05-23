@@ -3,4 +3,9 @@
 
 <mapper namespace="com.example.demo.dao.TestDao">
 
+    <insert id="insertData" parameterType="TestDto">
+        INSERT INTO EXEMTEST.TEST (grade, level, station, fineDust, ultrafineDust, date)
+        VALUES (#{grade}, #{level}, #{station}, #{fineDust},#{ultrafineDust}, #{date})
+    </insert>
+
 </mapper>

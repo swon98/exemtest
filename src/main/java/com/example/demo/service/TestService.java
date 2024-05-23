@@ -11,8 +11,7 @@ public class TestService {
 
     private final TestDao testDao;
 
-
-    public void insertCheck(TestDto testDto) {
-        
+    public void insertData(TestDto testDto) {
+        testDao.insertData(testDto);
     }
 }
