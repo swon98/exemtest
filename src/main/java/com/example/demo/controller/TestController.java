@@ -1,33 +1,33 @@
 package com.example.demo.controller;
 
 import com.example.demo.model.TestDto;
+import com.example.demo.service.ApiService;
 import com.example.demo.service.TestService;
 import lombok.RequiredArgsConstructor;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
-@Controller
+@RestController
 @RequiredArgsConstructor
 public class TestController {
 
     private final TestService testService;
+    private final ApiService apiService;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH");
 
     @GetMapping("/")
-    @ResponseBody
-    public void fileLead() throws Exception {
+    public void fileLead(){
 
         JSONParser parser = new JSONParser();
 
@@ -105,10 +105,19 @@ public class TestController {
                         testDto.setGrade(String.valueOf(grade));
                         testDto.setLevel(level);
                         testDto.setStation(station);
-                        testDto.setDate(startDateTime.format(formatter));
+                        testDto.setDate(date);
                         testDto.setFineDust(fineDustStr);
                         testDto.setUltrafineDust(ultrafineDustStr);
                         testService.insertData(testDto);
+
+                        HashMap<String, String> requestMap = new HashMap<>();
+
+                        requestMap.put("grade", String.valueOf(grade));
+                        requestMap.put("level", level);
+                        requestMap.put("station", station);
+                        requestMap.put("date", date);
+
+                        String apiresult = apiService.call("api.climate", requestMap);
                     }
                 }
             } else {
@@ -124,7 +133,7 @@ public class TestController {
                     testDto.setGrade(String.valueOf(grade));
                     testDto.setLevel(level);
                     testDto.setStation(station);
-                    testDto.setDate(startDateTime.format(formatter));
+                    testDto.setDate(date);
                     testDto.setFineDust(fineDustStr);
                     testDto.setUltrafineDust(ultrafineDustStr);
                     testService.insertData(testDto);
