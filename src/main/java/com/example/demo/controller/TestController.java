@@ -37,15 +37,11 @@ public class TestController {
             Reader reader = new InputStreamReader(resource.getInputStream(), "UTF-8");
             JSONArray dataArray = (JSONArray) parser.parse(reader);
 
-//            System.out.println("dateArray : " + dataArray);
-
             List<JSONObject> stationData = new ArrayList<>();
             for (Object obj : dataArray) {
                 JSONObject data = (JSONObject) obj;
                 stationData.add(data);
             }
-
-//            System.out.println("stationData : " + stationData);
 
             // 시간 순서대로 데이터 처리
             processStationData(stationData);
